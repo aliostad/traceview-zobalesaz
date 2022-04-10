@@ -13,5 +13,12 @@ namespace TraceviewZobalesaz
     [Option('v', "verbose", Required = false, HelpText = "Verbose output")]
     public bool Verbose { get; set; } = false;
 
+    [Option('h', "host", Required = false, HelpText = "Host name to send UDP packets to")]
+    public string Host { get; set; } = "localhost";
+
+    [Option('p', "port", Required = false, HelpText = "UDP port to send the packets to")]
+    public int Port { get; set; } = 1969;
+
+    
   }
 }
