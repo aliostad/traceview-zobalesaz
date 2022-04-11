@@ -17,12 +17,18 @@ namespace TraceviewZobalesaz
   {
     public static void Main(string[] args)
     {
+
+      TaskScheduler.UnobservedTaskException += (sender, eventArgs) =>
+      {
+        Console.WriteLine(eventArgs.Exception);
+      };
+      
       var cts = new CancellationTokenSource();
 
       var levelGen = Gen.Random.Items(new[] { "Info", "Critical", "Fatal", "Error", "Verbose" });
       var elapsedGen = Gen.Random.Numbers.Doubles(0, 1000_000_000);
       var categoryGen = Gen.Random.Items(new[] { "Application", "System", "Log" });
-      var messageGen = Gen.Random.Text.Long();
+      var messageGen = Gen.Random.Text.VeryLong();
 
       Func<TraceDto> getRandomTrace = () =>
       {
@@ -42,7 +48,10 @@ namespace TraceviewZobalesaz
           var udpClient = new UdpClient(opts.Host, opts.Port);
           var delayGen = Gen.Random.Numbers.Integers(0, opts.AverageLatencyMS * 2);
           var tasks = new List<Task>();
+          var counter = 0;
 
+          Console.WriteLine("Press <ENTER> to exit.");
+          
           for (int i = 0; i < opts.Concurrency; i++)
           {
             var localI = i;
@@ -51,12 +60,28 @@ namespace TraceviewZobalesaz
               while (!cts.IsCancellationRequested)
               {
                 await Task.Delay(delayGen(), cts.Token);
-                await SendRandomTraceAsync(localI, udpClient, getRandomTrace(), opts.Verbose);
+                if (await SendRandomTraceAsync(localI, udpClient, getRandomTrace(), opts.Verbose))
+                  Interlocked.Increment(ref counter);
               }
             });
 
             tasks.Add(task);
           }
+
+          Task.Run(async () =>
+          {
+            while (!cts.IsCancellationRequested)
+            {
+              if (!opts.Verbose)
+              {
+                Console.Write($"Traces sent to {opts.Host} on port {opts.Port}: {counter}\r");
+              }
+
+              await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+          });
+          
+          
         });
 
       Console.ReadLine();
@@ -65,7 +90,7 @@ namespace TraceviewZobalesaz
       cts.Cancel();
     }
 
-    static async Task SendRandomTraceAsync(int workerId, UdpClient client, TraceDto trace, bool verbose)
+    static async Task<bool> SendRandomTraceAsync(int workerId, UdpClient client, TraceDto trace, bool verbose)
     {
       try
       {
@@ -74,6 +99,7 @@ namespace TraceviewZobalesaz
         await client.SendAsync(buffer, buffer.Length);
         if (verbose)
           Console.WriteLine($"Sent UDP (Worker {workerId})");
+        return true;
       }
       catch (SocketException se)
       {
@@ -81,11 +107,13 @@ namespace TraceviewZobalesaz
           Console.WriteLine(se.Message);
         else
           Console.WriteLine(se);
+
+        return false;
       }
       catch (Exception e)
       {
-        // should never cause unhandled exception
         Console.WriteLine(e);
+        return false;
       }
     }
 
