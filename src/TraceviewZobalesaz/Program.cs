@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
@@ -53,7 +51,7 @@ namespace TraceviewZobalesaz
           Console.WriteLine("Press <ENTER> to exit.");
           
           for (int i = 0; i < opts.Concurrency; i++)
-          {
+{
             var localI = i;
             var task = Task.Run(async () =>
             {
@@ -82,7 +80,7 @@ namespace TraceviewZobalesaz
           });
           
           
-        });
+
 
       Console.ReadLine();
       Console.WriteLine("About to shut down...");

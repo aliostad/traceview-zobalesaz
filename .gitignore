@@ -40,3 +40,5 @@ script.sql
 TestResults/
 .vscode/
 publish/
+build-docker.sh
+run-docker.sh
